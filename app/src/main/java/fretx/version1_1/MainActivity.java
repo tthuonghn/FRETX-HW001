@@ -1,12 +1,18 @@
 package fretx.version1_1;
 
 import android.app.AlertDialog;
+import android.app.ListActivity;
+import android.app.ProgressDialog;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.AsyncTask;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Bundle;
 import android.support.annotation.UiThread;
@@ -18,20 +24,35 @@ import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
+import java.io.*;
 
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
 import com.google.android.youtube.player.YouTubeBaseActivity;
 import com.google.android.youtube.player.YouTubeInitializationResult;
 import com.google.android.youtube.player.YouTubePlayer;
 import com.google.android.youtube.player.YouTubePlayerView;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.List;
+import java.util.Set;
 
 import fretx.version1_1.item.SongItem;
+
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferUtility;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 
 public class MainActivity extends YouTubeBaseActivity
         implements YouTubePlayer.OnInitializedListener,SearchView.OnQueryTextListener{
@@ -80,6 +101,8 @@ public class MainActivity extends YouTubeBaseActivity
     private Runnable                    runnable;
     boolean                             mbSendingFlag = false;
 
+    private Button btnDownload;
+    private SongListViewAdapter songListViewAdapter;
 
 
     public MainActivity() {
@@ -110,6 +133,8 @@ public class MainActivity extends YouTubeBaseActivity
     @Override
     protected void onResume (){
         super.onResume();
+        initData();
+        initUI();
         showConnectionState();
     }
 
@@ -139,11 +164,54 @@ public class MainActivity extends YouTubeBaseActivity
     }
 
     public void initData(){
+        btnDownload = (Button) findViewById(R.id.buttonDownloadMain);
+        try {
+            btnDownload.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View arg0) {
+                    Intent intent = new Intent(MainActivity.this, DownloadActivity.class);
+                    startActivity(intent);
+                }
+            });
+        }catch (Exception e){
+            Log.e("test", e.getMessage());
+        }
+
+        File hwaccessFile = new File(this.getFilesDir().toString()+"/" + Constants.HW_BUCKET_MAPPING_FILE);
+        if(hwaccessFile.isFile()){
+
+        }
+
+        String hw = "hw001";
         mainData = new ArrayList<SongItem>();
+
+        File chordFileDir = new File(this.getFilesDir().toString() + "/" + hw);
+        if (chordFileDir.isDirectory() && chordFileDir.listFiles() != null && chordFileDir.listFiles().length > 0){
+            for(File file:chordFileDir.listFiles()) {
+                String song = file.getName();
+                try {
+                    mainData.add(Util.setSongItem(song.substring(0, song.indexOf(".")),
+                            song.substring(song.indexOf(".") + 1, song.indexOf(".txt")),
+                            this.getFilesDir().toString() + "/" + hw + "/" + song));
+                }catch(Exception ex){
+                    mainData.add(Util.setSongItem(song,
+                            song,
+                            this.getFilesDir().toString() + "/" + hw + "/" + song));
+                }
+            }
+        }else{
+            new AlertDialog.Builder(this)
+                    .setTitle("No song exists")
+                    .setMessage("Click Download to load songs from servers")
+                    .setPositiveButton(android.R.string.yes, null).create().show();
+        }
+
+        /*
         mainData.add(Util.setSongItem("The Beatles - Come Together",        "eTNitq77Utg",  R.raw.one));
         mainData.add(Util.setSongItem("The Beatles - Here Comes The Sun",   "Y6GNEEi7x4c",  R.raw.two));
         mainData.add(Util.setSongItem("Oasis - Wonderwall",                 "SLZ7uzFIMoY",  R.raw.three));
         mainData.add(Util.setSongItem("Led Zeppelin - Immigrant Song",      "TlmrQfSTmiY",  R.raw.four));
+        */
     }
 
     public void initUI(){
@@ -209,7 +277,8 @@ public class MainActivity extends YouTubeBaseActivity
 //                lvListNews.setVisibility(View.VISIBLE);
 //            }
 //        });
-        lvListNews.setAdapter(new SongListViewAdapter(this, mainData));
+        songListViewAdapter = new SongListViewAdapter(this, mainData);
+        lvListNews.setAdapter(songListViewAdapter);
 
         btStartLoop = (Button)findViewById(R.id.btnStartLoop);  ///Button that sets startTime while playing video.
         btEndLoop = (Button)findViewById(R.id.btnEndLoop);      ///Button that sets endTime while playing video.
@@ -326,7 +395,8 @@ public class MainActivity extends YouTubeBaseActivity
                 if(mainData.get(i).songName.toLowerCase().contains(query.toLowerCase())){
                     arrResultTemp.add(mainData.get(i));
                 }
-                lvListNews.setAdapter(new SongListViewAdapter(this, arrResultTemp));
+                songListViewAdapter = new SongListViewAdapter(this, arrResultTemp);
+                lvListNews.setAdapter(songListViewAdapter);
             }
         }
         return false;
@@ -336,7 +406,8 @@ public class MainActivity extends YouTubeBaseActivity
     public boolean onQueryTextChange(String newText) {
         lvListNews.setVisibility(View.VISIBLE);
         if (newText.equals(null)){
-            lvListNews.setAdapter(new SongListViewAdapter(this, mainData));
+            songListViewAdapter = new SongListViewAdapter(this, mainData);
+            lvListNews.setAdapter(songListViewAdapter);
         }else{
             ArrayList<SongItem> arrResultTemp = new ArrayList<SongItem>();
             for (int i = 0; i < mainData.size(); i ++){
@@ -344,7 +415,8 @@ public class MainActivity extends YouTubeBaseActivity
                     arrResultTemp.add(mainData.get(i));
 
                 }
-                lvListNews.setAdapter(new SongListViewAdapter(this, arrResultTemp));
+                songListViewAdapter = new SongListViewAdapter(this, arrResultTemp);
+                lvListNews.setAdapter(songListViewAdapter);
             }
         }
         return false;
@@ -378,9 +450,9 @@ public class MainActivity extends YouTubeBaseActivity
         Toast.makeText(this, message, Toast.LENGTH_LONG).show();
     }
 
-    public void playYoutubeVideoWithUri(String str, int resID){
+    public void playYoutubeVideoWithUri(String str, String chordFilePath){
 
-        initTxt( resID );
+        initTxt(chordFilePath);
 
         videoUri = str;
         player.loadVideo(videoUri);
@@ -479,8 +551,8 @@ public class MainActivity extends YouTubeBaseActivity
 
     }
 
-    public void initTxt(int resId) {
-        String str= Util.readRawTextFile(this.getBaseContext(), resId);
+    public void initTxt(String chordFilePath) {
+        String str= Util.readRawTextFile(this.getBaseContext(), chordFilePath);
         String[] strArray = str.split( "\n" );
         lstTimeText = new Hashtable();
         for( int nIndex= 0; nIndex < strArray.length; nIndex++ )

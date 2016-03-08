@@ -12,4 +12,17 @@
     <string name="str_end_loop">End Loop</string>
     <string name="connect">Device CONNECTED!</string>
     <string name="disconnect">Device not CONNECTED!</string>
+
+    <string name="download_activity">DownloadActivity</string>
+    <string name="download_selection_activity">Select a file from the bucket</string>
+    <string name="download">Download</string>
+    <string name="manage_download">Manage Songs</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="pause_all">Pause all</string>
+    <string name="cancel_all">Cancel all</string>
+    <string name="refreshing">Refreshing</string>
+    <string name="please_wait">Please wait</string>
 </resources>
