@@ -277,8 +277,7 @@ public class MainActivity extends YouTubeBaseActivity
 //                lvListNews.setVisibility(View.VISIBLE);
 //            }
 //        });
-        songListViewAdapter = new SongListViewAdapter(this, mainData);
-        lvListNews.setAdapter(songListViewAdapter);
+        lvListNews.setAdapter(new SongListViewAdapter(this, mainData));
 
         btStartLoop = (Button)findViewById(R.id.btnStartLoop);  ///Button that sets startTime while playing video.
         btEndLoop = (Button)findViewById(R.id.btnEndLoop);      ///Button that sets endTime while playing video.
@@ -395,8 +394,7 @@ public class MainActivity extends YouTubeBaseActivity
                 if(mainData.get(i).songName.toLowerCase().contains(query.toLowerCase())){
                     arrResultTemp.add(mainData.get(i));
                 }
-                songListViewAdapter = new SongListViewAdapter(this, arrResultTemp);
-                lvListNews.setAdapter(songListViewAdapter);
+                lvListNews.setAdapter(new SongListViewAdapter(this, arrResultTemp));
             }
         }
         return false;
@@ -406,8 +404,7 @@ public class MainActivity extends YouTubeBaseActivity
     public boolean onQueryTextChange(String newText) {
         lvListNews.setVisibility(View.VISIBLE);
         if (newText.equals(null)){
-            songListViewAdapter = new SongListViewAdapter(this, mainData);
-            lvListNews.setAdapter(songListViewAdapter);
+            lvListNews.setAdapter(new SongListViewAdapter(this, mainData));
         }else{
             ArrayList<SongItem> arrResultTemp = new ArrayList<SongItem>();
             for (int i = 0; i < mainData.size(); i ++){
@@ -415,8 +412,7 @@ public class MainActivity extends YouTubeBaseActivity
                     arrResultTemp.add(mainData.get(i));
 
                 }
-                songListViewAdapter = new SongListViewAdapter(this, arrResultTemp);
-                lvListNews.setAdapter(songListViewAdapter);
+                lvListNews.setAdapter(new SongListViewAdapter(this, arrResultTemp));
             }
         }
         return false;
