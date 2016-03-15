@@ -6,5 +6,5 @@ package fretx.version1_1.item;
 public class SongItem {
     public String songName;
     public String songURl;
-    public int songTxt;
+    public String songTxt;
 }
